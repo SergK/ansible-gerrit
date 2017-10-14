@@ -1,0 +1,6 @@
+---
+
+- name: "Provision Gerrit"
+  hosts: all
+  roles:
+    - { role: ansible-gerrit }

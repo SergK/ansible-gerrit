@@ -1,0 +1,5 @@
+FROM sergk/docker-travis-ci:debian8-latest
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt install -y python sudo bash

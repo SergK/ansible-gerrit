@@ -1,0 +1,61 @@
+---
+# Manage gerrit users/groups
+
+# ssh -p <port> <host> gerrit create-group
+#   [--owner <GROUP> | -o <GROUP>]
+#   [--description <DESC> | -d <DESC>]
+#   [--member <USERNAME>]
+#   [--group <GROUP>]
+#   [--visible-to-all]
+#   <GROUP>
+- name: Create Groups in Gerrit
+  command: >
+    ssh -o StrictHostKeyChecking=no
+    -i {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin -p 29418
+    {{ users.admin.login }}@localhost
+    gerrit create-group
+    --description \"{{ item.value.description | quote }}\"
+    {{ (item.value.visible_to_all == true) | ternary('--visible-to-all',omit) }}
+    \"{{ item.key | quote }}\"
+  with_dict: "{{ gerrit_accounts.groups }}"
+  become: true
+  become_user: gerrit2
+
+# ssh -p <port> <host> gerrit create-account
+#   [--group <GROUP>]
+#   [--full-name <FULLNAME>]
+#   [--email <EMAIL>]
+#   [--ssh-key - | <KEY>]
+#   [--http-password <PASSWORD>]
+#   <USERNAME>
+- name: Create Users in Gerrit
+  command: >
+    ssh -o StrictHostKeyChecking=no
+    -i {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin -p 29418
+    {{ users.admin.login }}@localhost
+    gerrit create-account
+    --group \"{{ item.in_groups[0] | quote }}\"
+    --full-name \"{{ item.full_name | quote }}\"
+    --email \"{{ item.email | quote }}\"
+    --ssh-key \"{{ item.ssh_key | quote }}\"
+    --http-password \"{{ item.http_password | quote }}\"
+    \"{{ item.name }}\"
+  with_items: "{{ gerrit_accounts.users }}"
+  become: true
+  become_user: gerrit2
+
+
+# walk through users-groups definitions and update information
+- name: Update users-to-groups relations in gerrit
+  command: >
+    ssh -o StrictHostKeyChecking=no
+    -i {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin -p 29418
+    {{ users.admin.login }}@localhost
+    gerrit set-members
+    -a \"{{ item.0.email }}\"
+    \"{{ item.1 }}\"
+  with_subelements:
+    - "{{ gerrit_accounts.users }}"
+    - in_groups
+  become: true
+  become_user: gerrit2

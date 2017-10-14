@@ -1,0 +1,42 @@
+---
+
+# install mariadb-client
+- name: Install the mariadb-client packages
+  apt: name=mariadb-client state=present update_cache=yes
+
+### sql part
+- name: Prepare sql script for admin user management
+  template:
+    src=infra-ci-gerrit-admin-user.sql.j2
+    dest={{ gerrit_homedir }}/infra-ci-gerrit-admin-user.sql
+    owner=gerrit2
+    group=gerrit2
+    mode=0644
+
+- name: Create admin user with proper SSH key directly in DB
+  shell: >
+    mysql -u{{ db.user }} -p{{ db.password }}
+    -h {{ db.host }}
+    {{ db.name }} < {{ gerrit_homedir }}/infra-ci-gerrit-admin-user.sql
+  args:
+    chdir: "{{ gerrit_homedir }}"
+    executable: /bin/bash
+### end sql part
+
+### sh part
+- name: Prepare sh script for admin user management
+  template:
+    src: gerrit-admin-user.sh.j2
+    dest: "{{ gerrit_homedir }}/gerrit-admin-user.sh"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0755
+
+- name: Run sh sript to inject gerrit admin key
+  command: "{{ gerrit_homedir }}/gerrit-admin-user.sh"
+  become: true
+  become_user: gerrit2
+## end sh part
+
+- name: Delete mariadb-client package
+  apt: name=mariadb-client state=absent autoremove=yes

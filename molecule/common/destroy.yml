@@ -1,0 +1,22 @@
+---
+
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+    - config_vars.yml
+  tasks:
+
+    # Docker Driver
+    - block:
+        - name: Destroy molecule Docker instance(s)
+          docker_container:
+            name: "{{ item.name }}"
+            state: absent
+          with_items: "{{ molecule_yml.platforms }}"
+
+        - name: Destroy Gerrit DB Docker instance
+          docker_container:
+            name: "{{ docker_container_name_mysql }}"
+            state: absent
+      when: molecule_driver_name == 'docker'

@@ -1,0 +1,139 @@
+-- original source https://gist.github.com/mgagne/0df3bb707176f2401fdd0b99915c5fdd
+-- Insert the base values for the initial Gerrit user. This user will
+-- become the administrator of the server. As this user is a local
+-- user it will not be able to login through the web UI.
+START TRANSACTION;
+
+SET @gerrit_admin_account_id = 1;
+SET @gerrit_admin_group_id = 1;
+
+{#
+#
+# For DEVELOPMENT mode we will have already user created in DB
+# We need only update its password and email
+#
+#}
+{% if gerrit_auth_type == "DEVELOPMENT_BECOME_ANY_ACCOUNT" %}
+
+UPDATE account_external_ids
+SET email_address = NULL,
+    password = '{{ users.admin.password }}'
+WHERE
+    external_id = 'username:{{ users.admin.login }}';
+
+UPDATE account_external_ids
+SET email_address = '{{ users.admin.email }}',
+    password = NULL
+WHERE
+    external_id = 'mailto:{{ users.admin.email }}';
+
+{#
+#
+# For LDAP mode we need to create internal admin account to manage
+# gerrit, we will also add standard LDAP accounts to admin group
+#
+#}
+{% elif gerrit_auth_type == "LDAP" %}
+
+INSERT INTO account_external_ids
+SET account_id = @gerrit_admin_account_id,
+    email_address = NULL,
+    password = '{{ users.admin.password }}',
+    external_id = 'username:{{ users.admin.login }}';
+
+INSERT INTO account_external_ids
+SET account_id = @gerrit_admin_account_id,
+    email_address = '{{ users.admin.email }}',
+    password = NULL,
+    external_id = 'mailto:{{ users.admin.email }}';
+
+
+-- Add local user to administrator group.
+
+INSERT INTO account_group_members
+SET account_id = @gerrit_admin_account_id,
+    group_id = @gerrit_admin_group_id;
+
+-- Insert the audit information.
+
+INSERT INTO account_group_members_audit
+SET added_by = @gerrit_admin_account_id,
+    removed_by = NULL,
+    removed_on = NULL,
+    account_id = @gerrit_admin_account_id,
+    group_id = @gerrit_admin_group_id,
+    added_on = NOW();
+
+
+-- Insert the internal Gerrit user which is connected to the
+-- account_external_id we created before.
+
+INSERT INTO accounts
+SET registered_on = NULL,
+    full_name = '{{ users.admin.fullname }}',
+    preferred_email = NULL,
+    inactive = 'N',
+    account_id = @gerrit_admin_account_id;
+
+INSERT INTO account_id
+VALUES(@gerrit_admin_account_id);
+
+{% for admin_login, admin_data in gerrit_admin.get('ldap', {}).items() %}
+SELECT MAX(account_id)+1
+INTO @admin_id
+FROM accounts;
+
+INSERT INTO account_id
+VALUES(@admin_id);
+
+INSERT INTO accounts
+SET registered_on = NULL,
+    full_name = '{{ admin_data.name }}',
+    preferred_email = '{{ admin_data.email }}',
+    inactive = 'N',
+    account_id = @admin_id;
+
+INSERT INTO account_external_ids
+SET account_id = @admin_id,
+    email_address = NULL,
+    password = NULL,
+    external_id = 'username:{{ admin_login }}';
+
+INSERT INTO account_external_ids
+SET account_id = @admin_id,
+    email_address = '{{ admin_data.email }}',
+    password = NULL,
+    external_id = 'gerrit:{{ admin_login }}';
+
+INSERT INTO account_external_ids
+SET account_id = @admin_id,
+    email_address = '{{ admin_data.email }}',
+    password = NULL,
+    external_id = 'mailto:{{ admin_data.email }}';
+
+INSERT INTO account_group_members
+SET account_id = @admin_id,
+    group_id = @gerrit_admin_group_id;
+
+INSERT INTO account_group_members_audit
+SET added_by = @gerrit_admin_account_id,
+    removed_by = NULL,
+    removed_on = NULL,
+    account_id = @admin_id,
+    group_id = @gerrit_admin_group_id,
+    added_on = NOW();
+{% endfor %}
+
+{% endif %}
+
+-- Set correct account_id sequence number for next accounts
+
+SELECT MAX(account_id)+1
+INTO @next_admin_id
+FROM accounts;
+
+SET @sql = CONCAT('ALTER TABLE account_id AUTO_INCREMENT = ', @next_admin_id);
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+
+COMMIT;

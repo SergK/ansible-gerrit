@@ -1,0 +1,46 @@
+#!/bin/bash
+
+TMP_DIR="{{ gerrit_homedir }}/all-projects-tmp"
+GIT_OPTIONS="--git-dir=${TMP_DIR}/.git --work-tree=${TMP_DIR}"
+PROJECT_ADDRESS=ssh://{{ users.admin.login }}@localhost:29418/All-Projects
+
+rm -rf ${TMP_DIR}
+git clone ${PROJECT_ADDRESS} ${TMP_DIR}
+
+git ${GIT_OPTIONS} fetch ${PROJECT_ADDRESS} \
+  +refs/meta/config:refs/remotes/gerrit-meta/config
+git ${GIT_OPTIONS} remote update --prune
+git ${GIT_OPTIONS} checkout -B config remotes/gerrit-meta/config
+
+# copy project config
+cp {{ gerrit_homedir }}/all-projects.config ${TMP_DIR}/project.config
+# groups magic, we need to update groups file which is in format:
+# UUID                                      Group Name
+#
+# 124801cba7cd86e10f0cbcaef3b69fe98f218706  Non-Interactive Users
+# fbe3b31c4e6b27479e8fd14453c91b6a78f52a6a  Administrators
+# global:Anonymous-Users                    Anonymous Users
+# global:Project-Owners                     Project Owners
+# global:Registered-Users                   Registered Users
+
+# we need to add newly defined groups in all-projects/project.config acl
+
+# let's get groups, except Administrators and Non-Interactive Users
+# Output result:
+#
+# b25cd373045264e780d910f75f523e083c3e9e14   Continuous Integration Tools
+# 91eee944f08e15a914b4cb286fd30c74f9b5e62e   Project Bootstrappers
+# c2d6b6e6f2dfe15ffbb0104c73ec0cbdabebdffc   Release Managers
+ssh -o StrictHostKeyChecking=no -i {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin \
+  -p 29418 {{ users.admin.login }}@localhost gerrit ls-groups -v | \
+  awk '-F\t' '$1 != "Administrators" && $1 != "Non-Interactive Users" \
+  {print $2,"\t",$1}' >> ${TMP_DIR}/groups
+# Since we have Change Owner global rule we need to add this build-in group too
+echo -e 'global:Change-Owner\t\t\t\tChange Owner' >> ${TMP_DIR}/groups
+
+# set project git user and email in order to be able to git commit
+git ${GIT_OPTIONS} config user.name "{{ users.admin.fullname }}"
+git ${GIT_OPTIONS} config user.email "{{ users.admin.email }}"
+
+git ${GIT_OPTIONS} commit -a -m'Update project config.'
+git ${GIT_OPTIONS} push ${PROJECT_ADDRESS} HEAD:refs/meta/config

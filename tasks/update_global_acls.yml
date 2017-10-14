@@ -1,0 +1,31 @@
+---
+# Update global acl rules by data taken from
+# project-config.git/gerrit/acls/all-projects/project.config
+
+- name: Prepare script for managing all-projects
+  template:
+    src: update-all-projects.sh.j2
+    dest: /usr/local/bin/update-all-projects.sh
+    owner: gerrit2
+    group: gerrit2
+    mode: 0755
+
+- name: Put configuration for all-projects
+  copy:
+    src: "files/all-projects.config"
+    dest: "{{ gerrit_homedir }}/all-projects.config"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+
+- name: Update global acl config
+  command: /usr/local/bin/update-all-projects.sh
+  become: true
+  become_user: gerrit2
+
+# we need this script only once, so in order to
+# not break smth in future let's remove it
+- name: Remove script for managing all-projects
+  file:
+    path: /usr/local/bin/update-all-projects.sh
+    state: absent

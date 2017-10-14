@@ -1,0 +1,39 @@
+---
+
+gerrit_homedir: /home/gerrit2
+gerrit_site: /home/gerrit2/review_site
+gerrit_public: 'http://localhost'
+
+#
+# Gerrit Accounts Users/Groups
+#
+gerrit_accounts:
+  groups:
+    Project Bootstrappers:
+      description: Grants all the permissions needed to set up a new project
+      visible_to_all: true
+
+    Continuous Integration Tools:
+      description: >
+        Contains Jenkins and any other CI tools
+        that get +2/-2 access on reviews
+      visible_to_all: true
+
+  users:
+    # gerrit to jenkins connection
+    - name: "{{ users.jenkins.login }}"
+      http_password: "{{ users.jenkins.password }}"
+      in_groups:
+        - Continuous Integration Tools
+        - Non-Interactive Users
+      full_name: "{{ users.jenkins.fullname }}"
+      email: "{{ users.jenkins.email }}"
+      ssh_key: "{{ users.jenkins.ssh_public_key }}"
+
+    # jeepyb user
+    - name: "{{ users.jeepyb.login }}"
+      http_password: "{{ users.jeepyb.password }}"
+      in_groups: "{{ users.jeepyb.groups }}"
+      full_name: "{{ users.jeepyb.fullname }}"
+      email: "{{ users.jeepyb.email }}"
+      ssh_key: "{{ users.jeepyb.ssh_public_key }}"

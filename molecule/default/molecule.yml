@@ -1,0 +1,46 @@
+---
+
+dependency:
+  name: galaxy
+
+driver:
+  name: "${MOLECULE_DRIVER_NAME:-docker}"
+
+lint:
+  name: yamllint   # Will use the rules defined in .yamllint
+
+platforms:
+  - name: gerrit-debian
+    groups:
+      - gerrit
+
+provisioner:
+  name: ansible
+  options:
+    diff: True
+    vvv: False
+  playbooks:
+    create: ../common/create.yml
+    destroy: ../common/destroy.yml
+    converge: ../../playbook.yml
+  lint:
+    name: ansible-lint
+
+scenario:
+  name: default
+  test_sequence:
+    - destroy
+    - dependency
+    - syntax
+    - create
+    - converge
+    - idempotence
+    - lint
+    - side_effect
+    - verify
+    - destroy
+
+verifier:
+  name: testinfra
+  lint:
+    name: flake8

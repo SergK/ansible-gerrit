@@ -1,0 +1,18 @@
+---
+
+# Molecule Configuration
+molecule_file: "{{ lookup('env','MOLECULE_FILE') }}"
+molecule_scenario_directory: "{{ lookup('env','MOLECULE_SCENARIO_DIRECTORY') }}"
+molecule_yml: "{{ lookup('file', molecule_file) | from_yaml }}"
+molecule_driver_name: "{{ lookup('env', 'MOLECULE_DRIVER_NAME') | default('docker', true) }}"
+molecule_target_distro: "{{ lookup('env','MOLECULE_TARGET_DISTRO') | default('debian', true) }}"
+
+# Docker Driver Configuration
+docker_image_name_mysql: mariadb:10
+docker_container_name_mysql: gerrit-mysql
+
+docker_image_name: "molecule_local/ansible-gerrit-{{ molecule_target_distro }}"
+docker_image_file:
+  debian: Dockerfile.debian
+docker_command:
+  debian: "/sbin/init"

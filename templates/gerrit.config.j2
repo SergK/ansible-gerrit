@@ -1,0 +1,87 @@
+#jinja2: trim_blocks: False
+[gerrit]
+    basePath = git
+    canonicalWebUrl = {{ gerrit_public }}
+    serverId = {{ ansible_hostname | to_uuid }}
+[database]
+    type = {{ db.type }}
+    hostname = {{ db.host }}
+    database = {{ db.name }}
+    username = {{ db.user }}
+    connectionPool = true
+    poolLimit = {{ db.poolLimit }}
+[auth]
+    type = {{ gerrit_auth_type }}
+{% if gerrit_auth_type=='LDAP' -%}
+[ldap]
+    server = ldap://{{ ldap.server }}/
+    accountBase = {{ ldap.account_base }}
+    accountFullName = cn
+    accountPattern = (uid=${username})
+    accountEmailAddress = mail
+    accountFullName = cn
+    groupName = cn
+    groupPattern = (&(objectClass=posixGroup)(cn=${groupname}))
+    groupMemberPattern = (&(objectClass=posixGroup)(memberUid=${uid}))
+    groupBase = {{ ldap.group_base }}
+{% if not ldap.username is none -%}
+    username = cn={{ ldap.username }},{{ ldap.account_base }}
+{% endif -%}
+{% if not ldap.password is none -%}
+    password = {{ ldap.password }}
+{% endif -%}
+{% endif -%}
+[container]
+    user = gerrit2
+    javaHome = /usr/lib/jvm/java-8-openjdk-amd64
+    heapLimit = 2g
+[gitweb]
+    type = gitweb
+    revision = "?p=${project}.git;a=commitdiff;h=${commit}"
+[sshd]
+    listenAddress = *:29418
+    threads = 100
+[httpd]
+# listenUrl = proxy-https://*:8081/
+    listenUrl = proxy-http://*:8080
+[cache]
+    directory = cache
+[cache "web_sessions"]
+    maxAge = 1 w
+[mimetype "image/*"]
+    safe = true
+[mimetype "application/yaml"]
+    safe = true
+[mimetype "application/xml"]
+    safe = true
+[mimetype "application/rst"]
+    safe = true
+[mimetype "application/txt"]
+    safe = true
+[mimetype "application/html"]
+    safe = true
+[commentlink "testresult"]
+  match = <li>([^ ]+) <a href=\"[^\"]+\" target=\"_blank\" rel=\"nofollow\">([^<]+)</a> : ([^ ]+)([^<]*)</li>
+  html = <li class=\"comment_test\"><span class=\"comment_test_name\"><a href=\"$2\" rel=\"nofollow\">$1</a></span> <span class=\"comment_test_result\"><span class=\"result_$3\">$3</span>$4</span></li>
+[commentlink "changeid"]
+  match = (I[0-9a-f]{8,40})
+  link = "#q,$1,n,z"
+  html =
+[index]
+  type = LUCENE
+  defaultMaxClauseCount = 131072
+[sendemail]
+  smtpServer = {{ email.server }}
+{%- if email.enable|bool %}
+  enable = true
+  smtpServerPort = {{ email.server_port }}
+  smtpEncryption = {{ email.encryption }}
+  smtpUser = {{ email.auth_user }}
+  smtpPass = {{ email.auth_pass }}
+  allowRegisterNewEmail = {{ email.register_enable }}
+  from = {{ email.from }}
+{%- else %}
+  enable = false
+{%- endif %}
+[receive]
+  enableSignedPush = false

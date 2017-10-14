@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# From gerrit 2.13 SSH keys are stored in All-Users repository
+# and this script is used to add first SSH key for admin user
+#
+
+TMP_DIR="{{ gerrit_homedir }}/all-users-tmp"
+GIT_OPTIONS="--git-dir=${TMP_DIR}/.git --work-tree=${TMP_DIR}"
+PROJECT_ADDRESS=file://{{ gerrit_site }}/git/All-Users.git
+
+echo "Clone All-Users directly from local filesystem"
+git clone ${PROJECT_ADDRESS} ${TMP_DIR}
+
+echo "Create admin ref, user with ID:1"
+git ${GIT_OPTIONS} checkout --orphan refs/users/01/1
+cp {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin.pub ${TMP_DIR}/authorized_keys
+git ${GIT_OPTIONS} add ${TMP_DIR}/authorized_keys
+git ${GIT_OPTIONS} commit -m 'Initial admin key'
+git ${GIT_OPTIONS} push origin +refs/users/01/1:refs/users/01/1

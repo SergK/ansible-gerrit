@@ -1,0 +1,265 @@
+---
+
+- name: add backports repository
+  apt_repository:
+    repo: 'deb http://deb.debian.org/debian jessie-backports main'
+    state: present
+    filename: jessie-backports
+    update_cache: yes
+
+- name: Install base packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    install_recommends: no
+  with_items:
+    - ca-certificates
+    - curl
+    - file
+    - git-core
+    - iproute2
+    - net-tools
+    - netcat-openbsd
+    - python-pip
+    - strace
+    - vim
+    - wget
+
+- name: Install packages used by gerrit
+  apt:
+    name: "{{ item }}"
+    state: present
+    install_recommends: no
+  with_items:
+    - ca-certificates-java=20161107~bpo8+1
+    - git-core
+    - openjdk-8-jre-headless
+    - openssh-client
+    - python-mysqldb
+    - sudo
+    - unzip
+
+- name: Install packages required to enable gitweb in gerrit
+  apt:
+    name: "{{ item }}"
+    state: present
+    install_recommends: no
+  with_items:
+    - gitweb
+    - lynx-cur
+    - libcgi-pm-perl
+
+- name: Create gerrit group
+  group:
+    name: gerrit2
+    gid: "{{ gerrit.gid }}"
+
+- name: Create gerrit user
+  user:
+    name: gerrit2
+    uid: "{{ gerrit.uid }}"
+    group: gerrit2
+    home: "{{ gerrit_homedir }}"
+    shell: /bin/bash
+    createhome: yes
+
+- name: Fix gerrit home directory ownership
+  file:
+    path: "{{ gerrit_homedir }}"
+    owner: gerrit2
+    group: gerrit2
+
+- name: Configure global git config for gerrit admin user
+  copy:
+    content: |
+      [user]
+        name = {{ users.admin.fullname }}
+        email = {{ users.admin.email }}
+    dest: "{{ gerrit_homedir }}/.gitconfig"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+
+- name: Download gerrit war file
+  get_url:
+    url: "{{ gerrit_download_url }}/{{ gerrit_file }}"
+    dest: "{{ gerrit_homedir }}/{{ gerrit_file }}"
+  become: true
+  become_user: gerrit2
+
+- name: Create gerrit directories
+  file:
+    path: "{{ gerrit_homedir }}/{{ item }}"
+    owner: gerrit2
+    group: gerrit2
+    state: directory
+    mode: 0755
+  with_items:
+    - review_site
+    - review_site/etc
+    - review_site/static
+    - review_site/git
+    - .ssh
+
+- name: Create gerrit configuration
+  template:
+    src: gerrit.config.j2
+    dest: "{{ gerrit_site }}/etc/gerrit.config"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+
+- name: Create gerrit secure configuration
+  template:
+    src: secure.config.j2
+    dest: "{{ gerrit_site }}/etc/secure.config"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0600
+
+- name: Create gerrit default configuration
+  template:
+    src: gerritcodereview.default.j2
+    dest: /etc/default/gerritcodereview
+    owner: root
+    group: root
+    mode: 0644
+
+#
+# Add jquery and jquery-visible as local copy of files
+# this eliminate download from external sources
+#
+- name: Add hideci files
+  copy:
+    src: "files/{{ item }}"
+    dest: "{{ gerrit_site }}/static/{{ item }}"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+  with_items:
+    - hideci.js
+    - jquery-visibility.js
+    - jquery-1.7.2.min.js
+
+- name: Add gerrit header files
+  copy:
+    src: "files/{{ item }}"
+    dest: "{{ gerrit_site }}/etc/{{ item }}"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+  with_items:
+    - GerritSiteHeader.html
+    - GerritSite.css
+
+- name: Install gerrit
+  command: >
+    java -jar {{ gerrit_homedir }}/{{ gerrit_file }}
+    init --batch --no-auto-start -d {{ gerrit_site }}
+  args:
+    creates: "{{ gerrit_site }}/bin/gerrit.war"
+  become: true
+  become_user: gerrit2
+  register: gerrit_installed
+
+- name: Execute reindex
+  command: >
+    java -jar {{ gerrit_homedir }}/{{ gerrit_file }}
+    reindex -d {{ gerrit_site }}
+  become: true
+  become_user: gerrit2
+  when: gerrit_installed.changed
+  tags:
+    - skip_ansible_lint
+
+# Use unzip instead of unarchive module, because of
+# https://github.com/ansible/ansible/issues/27081
+- name: Install gerrit plugins
+  command: >
+    unzip -jo {{ gerrit_homedir }}/{{ gerrit_file }}
+    WEB-INF/plugins/* -d {{ gerrit_site }}/plugins
+  become: true
+  become_user: gerrit2
+  when: gerrit_installed.changed
+  tags:
+    - skip_ansible_lint
+
+- name: Copy gerrit admin rsa key
+  copy:
+    content: "{{ users.admin.ssh_private_key }}"
+    dest: "{{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0400
+
+- name: Copy gerrit admin rsa PUB key
+  copy:
+    content: "{{ users.admin.ssh_public_key }}"
+    dest: "{{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin.pub"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0640
+
+# we need to have custom .ssh/config since admin user
+# uses non-standard ~/.ssh/id_rsa path
+- name: Config .ssh/config file for admin user host
+  copy:
+    content: |
+      host localhost
+        User {{ users.admin.login }}
+        HostName localhost
+        StrictHostKeyChecking no
+        UserKnownHostsFile = /dev/null
+        IdentityFile {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin
+      host github.com
+        StrictHostKeyChecking no
+        UserKnownHostsFile = /dev/null
+        IdentityFile {{ gerrit_homedir }}/.ssh/id_rsa_gerrit_admin
+    dest: "{{ gerrit_homedir }}/.ssh/config"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+
+# Update admin user directly in DB
+- name: Create admin user
+  import_tasks: create_admin_user.yml
+  when: gerrit_installed.changed
+  tags:
+    - skip_ansible_lint
+
+- name: Create gerrit service unit
+  template:
+    src: gerrit.systemd.j2
+    dest: "/lib/systemd/system/gerrit.service"
+    owner: gerrit2
+    group: gerrit2
+    mode: 0644
+
+- name: Fix gerrit home directory permission
+  file:
+    dest: "{{ gerrit_homedir }}"
+    owner: gerrit2
+    group: gerrit2
+
+- name: Start gerrit for configuration
+  service:
+    name: gerrit
+    state: started
+
+- name: Wait for gerrit started
+  wait_for:
+    port: 8080
+
+# manage users/groups creation with admin user
+- name: Bootstrap gerrit
+  import_tasks: manage.yml
+  when: gerrit_installed.changed
+  tags:
+    - skip_ansible_lint
+
+# modify projects-all global acl configuration
+- name: Update global ACL
+  import_tasks: update_global_acls.yml
+  when: gerrit_installed.changed
+  tags:
+    - skip_ansible_lint

@@ -1,0 +1,19 @@
+---
+
+galaxy_info:
+  author: Sergiy Kulanov
+  description: Setup Gerrit on Ubuntu/Debian.
+  min_ansible_version: 2.1
+  license: MIT
+  issue_tracker_url: https://github.com/sergk/ansible-gerrit/issues
+
+  platforms:
+    - name: Debian
+      versions:
+        - jessie
+  galaxy_tags:
+    - gerrit
+    - review
+    - CI
+
+dependencies: []

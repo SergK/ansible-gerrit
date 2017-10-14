@@ -1,0 +1,140 @@
+---
+
+gerrit_download_url: https://gerrit-releases.storage.googleapis.com
+
+gerrit_file: gerrit-2.14.1.war
+
+#
+# DB server configuration (MySQL)
+#
+db:
+  type: mysql
+  host: gerrit-mysql
+  name: gerrit
+  user: gerrit
+  password: gerrit
+  poolLimit: 8
+
+#
+# LDAP server settings
+#
+ldap:
+  server: 10.0.0.1
+  account_base: dc=infra-ci,dc=local
+  group_base: ou=Groups,o=infra,dc=infra-ci,dc=local
+  organization_base: o=infra,dc=infra-ci,dc=local
+  search_filter:
+  username:
+  password:
+
+java_opts:
+  gerrit:
+
+#
+# Gerrit configuration
+
+gerrit:
+  uid: 900
+  gid: 900
+#
+# By default gerrit is configured to use LDAP server as authentication backend
+# You can switch it to development mode which allow to local tests.
+#
+# WARNING: Development mode cannot be used on production systems, it allow to
+#          login as any user without password
+#
+# Supported options:
+#  gerrit_auth_type: LDAP
+#  gerrit_auth_type: DEVELOPMENT_BECOME_ANY_ACCOUNT
+#
+gerrit_auth_type: DEVELOPMENT_BECOME_ANY_ACCOUNT
+
+# Private key to use when generating an email verification token.
+registerEmailPrivateKey: CHANGEME
+
+#
+# Gerrit users management
+#
+users:
+  # Gerrit account for global administrator
+  admin:
+    login: admin
+    password: admin
+    fullname: Administrator
+    email: admin@example.com
+    ssh_private_key: |
+      -----BEGIN RSA PRIVATE KEY-----
+      MIIEpAIBAAKCAQEA0Qlo4se+ohnR+/rTAjEjfiuG972RiF7X2vOrYsz6/mztWx1G
+      u4LHWle6RDPYsiFmA5rHilaNXd6hKTfzNC6u7tRbdt62NK2puW33xQ3O3JT68lEn
+      vvMgRqsME6Pfgh/QArVBRETgBoBJPmwDGMfFKq/hlvPpB/svPpsdIRtQkBTTgH4X
+      HQ4VYyE6mVPhxbE6T6soy965/5S+Lo86jpqRmHAFMWjq6BUdvbSkyNvawqLmP+h+
+      jujv0Osb6BPevZV3OhE3Kiq0BNpqYAhLN8D7njnDDwiD7FsuVFUldaUZmkntx83i
+      CY7l445GNnEhFU1luuwHZNy8WKd0FVWXJ20A+QIDAQABAoIBAQCM9g12sD/LTCIg
+      C9pzJfPLR0rykTEshtiE28B9FcFEBOxifvGNzPjl4TbIezXrmT4TvDJHBWq7HEAN
+      bZ9hVwG8KBOtqy2vhFRpqNBmX5NZiFVZRoTI7WacgQfZzq4QL6ezy8rBYLi5aZT6
+      tRe5hC1fRc+YXc6NBUOssikIhETlgw2NztzGqPCCDIv9dtTBUf+61XMP4W9N9OVn
+      g/ZR0GHnUqpm/iD5rDjWIfCN4cO4kaI3Lg/A+RcpiSPJMOyq1jVWi6mUAe0YE5Op
+      gf4SYB4v8kriHJLDn/cfBNq7mK8AuZMydfFMCuplsygOaJ8s2GuXd+0wA+PJ1Cip
+      sb/Nqw8BAoGBAPA/GDylGixbyLuDYx2eHEWf+CNyevt1hsY3+wDGnImXQp7vZybJ
+      m+0RxVLTpBbPAGA2umtJCSq2j56r8WvvBRL+vJHqDoGwTikhzUulhCTRt+x4ZYVG
+      wF3ENgnXzZggHDBI78yrsj7/a9ezOFlFKqoMz5pqhRv2XJqqaL1E7v6JAoGBAN6+
+      aYi8tow/flJ4gNnjQlLP2mxMxTdL1C9WpdkOlsX1Z0T/m8rovtl3lonD5b5yXrjS
+      LtuQnhGqnZZQq9DkcYztLp80b19fs1tQtgNnYfGGllPqabw0Qv5yUwXhRYQiOz/F
+      mcQ2OjlEg9qPOGCgQYwldyVwacsZu+s2qV6ny9LxAoGBAJCFZA8XQqdsj1Q9tWIb
+      uuYnVR39v/2EtY6IHnZZA9HBLFJvsZ2jqijyh8FLj2opHBDE21+uj9Uh/UN2K8TC
+      BEto8gbUxeU+KcaUjurypot/nSSjSG7kINRHNDq3lvXsWwiw15BHuPIstLMNHNiW
+      wxOIoVpCudAYY5ym5lr1HNABAoGAKWkNBbbP2VMUkRCGI/v0IKEz4l6Da7xVPlfF
+      jY0AytzMzi8XL6oFkTiCbCpXVAi/Q20P+RHx0Sb/FSr6RmOyGJkfycldy0VnetqO
+      fCOEOfrjh8ZU0gCFU/i9JqKy4dXbXgfGhovuVyc9vCxUNuKUTRHKDNPRV0j5fsky
+      w74+ToECgYAjWHcJghWoY8CNHI8F01nJi+Haglh1RIa7zIw79Oo+RcXdoSKXXifq
+      DM9aVI80xGQAXa7QRYHhsUUp3/lWDy+lf+HYIXTuzqwOfofuB3ugb1ZJsxvMSDCx
+      w6GrTKLjMuNtAYMa7HD+KIpMkjK6IIrZU0T2fuDrpsLc2MH5o4QpXA==
+      -----END RSA PRIVATE KEY-----
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRCWjix76iGdH7+tMCMSN+K4b3vZGIXtfa86tizPr+bO1bHUa7gsdaV7pEM9iyIWYDmseKVo1d3qEpN/M0Lq7u1Ft23rY0ram5bffFDc7clPryUSe+8yBGqwwTo9+CH9ACtUFEROAGgEk+bAMYx8Uqr+GW8+kH+y8+mx0hG1CQFNOAfhcdDhVjITqZU+HFsTpPqyjL3rn/lL4ujzqOmpGYcAUxaOroFR29tKTI29rCouY/6H6O6O/Q6xvoE969lXc6ETcqKrQE2mpgCEs3wPueOcMPCIPsWy5UVSV1pRmaSe3HzeIJjuXjjkY2cSEVTWW67Adk3LxYp3QVVZcnbQD5 gerrit_admin@example.com"
+
+  # Gerrit account for jenkins user
+  jenkins:
+    login: infra-ci-gerrit
+    password: ZZhas8769!VsWuM
+    fullname: INFRA CI
+    email: infra-ci-jenkins@example.com
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDR95H8/kpSx2pIhVMsbOZWn/1stCc4QHukW8+POdd6OhR/S32TW3124rSB20PDTr/iLQquYu6BrqDDxrWlS0gOqTGm0HyNmdEKOAFvJ1/fzI3eErKIXzAe6KcclLuqnjhg0OEUxJ/aGHyAkdq0/qvcIXJLIdtB5yi1YPAeG86ALEndzQu9pGSXe7ArYMJLIDZ7yGqNoeSU205ZgJzRagZ78tp2KMRvDTD6VoFbQW+nlHac32CxP7iHvM4aXyO/4cf6ZeA1skg+RYD8rtFLTOoY/MfxT7aWUDTv5eOpqZutov0b+Tmjbeuoqo6ISaSWC4NgfbbIRG2mIJo/KiuDc8o/ infra-ci-jenkins@example.com"
+
+  # Gerrit account for jeepyb user
+  jeepyb:
+    login: jeepyb
+    password: jeepyb
+    fullname: Jeepyb User
+    email: infra-ci-jeepyb@example.com
+    groups:
+      - Project Bootstrappers
+      - Administrators
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCy91sQ18I+5YR2LeE+PClZeJGs3hZMDbfZEa/uzNpBypxqRvKxULvxrC8mNADyI1fBckUKoZg9B7A7wKzA0/7r2r5hfd94qBC17j0v6cOg8l213LrgnZPF6FYHArbsyLv+G3uqDEOyHW3X38V8XCg7BQLQ5x02+BUIrMNCpn8LhvH0l+RdUa66eKYj7NY2LxRI1M9OaW14SMsqkS4+yZsfWTeAablOO/96voK1i1QRs1h0IOVUxcsL8mpjFDsiojz2HBRnfZb3bDpruWSIlgUzbfwdskyX637WrIlMTKrIhOphFqFXq3X0jIhvcIp800WJnYRvr1HWExhBrAsCLLYp infra-ci-jeepyb@example.com"
+
+#
+# Gerrit email configuration
+#
+email:
+
+  # Enable email notifications (true/false)
+  enable: false
+
+  # Email sender
+  from: gerrit@localhost
+
+  # Enable possibility to register additional email for users
+  register_enable: true
+  register_key: CHANGEIT
+
+  # Smtp server
+  server: localhost
+  server_port: 25
+  server_timeut: 15s
+
+  # Use encryption (none/ssl/tls)
+  encryption: none
+
+  # Enable user authentication (true/false)
+  enable_auth: false
+  auth_user: user
+  auth_pass: password
