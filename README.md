@@ -1,6 +1,8 @@
 Ansible Role: Gerrit
 ====================
 
+[![Build Status](https://api.travis-ci.org/SergK/ansible-gerrit.svg?branch=master)](https://travis-ci.org/SergK/ansible-gerrit)
+
 Setup Gerrit Service on Debian
 
 Requirements
