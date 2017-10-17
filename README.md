@@ -24,7 +24,7 @@ Example Playbook
 ```yaml
 - hosts: gerrit
   roles:
-    - { role: sergk.gerrit }
+    - { role: SergK.gerrit }
 ```
 
 License
